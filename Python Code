@@ -1,0 +1,203 @@
+import cv2 as cv
+import numpy as np
+import time
+import math
+import serial
+
+# Set up serial communication with Arduino
+arduino = serial.Serial('COM7', 115200)
+time.sleep(2)  # Allow time for the connection to establish
+
+# Define sharpening kernel for image enhancement
+kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+
+# Define parameters for circle detection
+circle_diameter = 60 
+circle_radius = circle_diameter // 2
+
+# Initialize CODEWORD (4-digit code sent to Arduino)
+CODEWORD = [0, 0, 0, 0]
+
+# Load pre-trained MobileNet SSD architecture and weights for object detection
+PROTOTXT = "MobileNetSSD_deploy (2).prototxt"
+MODEL = "MobileNetSSD_deploy (2).caffemodel"
+
+# List of object classes that the model can detect
+CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
+           "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+
+# Generate random colors for each class to be used in bounding boxes
+COLOURS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
+
+# Load the neural network model using the Caffe framework
+net = cv.dnn.readNetFromCaffe(PROTOTXT, MODEL)
+
+# Initialize webcam (camera index 2)
+cap = cv.VideoCapture(2)
+
+fps = 0
+frame_count = 0
+
+# Record start time for calculating FPS later
+start_time = time.time()
+
+# Define the center point of the screen for alignment
+circle_center = (352, 336)
+circle_center_x = 352
+circle_center_y = 336
+
+# Main loop that continuously captures frames from the webcam
+while True:
+
+    # Capture a frame from the webcam
+    ret, blur_frame = cap.read()
+
+    # Apply sharpening filter to enhance the frame
+    frame = cv.filter2D(blur_frame, -1, kernel)
+
+    # If frame capture fails, exit the loop
+    if not ret:
+        break
+
+    # Extract the frame's width and height
+    (h, w) = frame.shape[:2]
+
+    # Preprocess the frame to make it compatible with the neural network (resize and normalize)
+    blob = cv.dnn.blobFromImage(cv.resize(frame, (300, 300)), 0.007843, (300, 300), 127.5)
+
+    # Set the preprocessed frame as input for the neural network
+    net.setInput(blob)
+
+    # Perform forward pass to get detection results
+    detections = net.forward()
+
+    closest_box = None
+    min_distance = float('inf')  # Initialize the minimum distance to infinity
+
+    # Loop through all detected objects
+    for i in range(detections.shape[2]):
+        
+        confidence = detections[0, 0, i, 1]  # Get confidence level of the detection
+
+        # Only consider detections with confidence higher than 0.5
+        if confidence > 0.5:
+            idx = int(detections[0, 0, i, 1])  # Get class index
+
+            # Skip non-person detections
+            if CLASSES[idx] != "person":
+                continue
+
+            # Extract bounding box coordinates and resize them according to the frame dimensions
+            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+            (startX, startY, endX, endY) = box.astype("int")
+
+            # Calculate the middle point of the detected object
+            MiddleX = int((startX + endX) // 2)
+            MiddleY = int((startY + endY) // 2)
+
+            # Calculate the distance between the center of the screen and the middle of the bounding box
+            distance = int(math.sqrt(((MiddleX - 352) ** 2) + ((MiddleY - 336) ** 2)))
+
+            # Track the closest person (smallest distance to center)
+            if distance < min_distance:
+                min_distance = distance
+                closest_box = (startX, startY, endX, endY, MiddleX, MiddleY)
+
+    # If a person is detected
+    if closest_box is not None:
+
+        # Draw a green rectangle around the detected person
+        cv.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), thickness=4)
+
+        # Draw a blue circle around the middle of the person
+        cv.circle(frame, (MiddleX, MiddleY), circle_diameter, (255, 0, 0), thickness=4)
+
+        CODEWORD[0] = 1  # Set first codeword digit to indicate detection
+
+        # Determine if the person is aligned horizontally with the center of the screen
+        if MiddleX - circle_radius <= circle_center_x <= MiddleX + circle_radius:
+            CODEWORD[1] = 1  # Person is aligned horizontally
+        elif circle_center_x > MiddleX + circle_radius:  # Move right
+            CODEWORD[1] = 2
+        else:  # Move left
+            CODEWORD[1] = 3
+        
+        # Determine if the person is aligned vertically with the center of the screen
+        if MiddleY - circle_radius <= circle_center_y <= MiddleY + circle_radius:
+            CODEWORD[2] = 1  # Person is aligned vertically
+        elif circle_center_y > MiddleY + circle_radius:  # Move down
+            CODEWORD[2] = 2
+        else:  # Move up
+            CODEWORD[2] = 3
+
+        # Check if the person is fully inside the firing zone
+        if startX <= circle_center_x <= endX and startY <= circle_center_y <= endY:
+            CODEWORD[3] = 1  # Ready to fire
+        else:
+            CODEWORD[3] = 0  # Not ready to fire
+
+    else:
+        # If no person is detected, reset CODEWORD
+        CODEWORD = [0, 0, 0, 0]
+        
+    # Convert the CODEWORD list into a string
+    string_CODEWORD = ''.join(map(str, CODEWORD))
+
+    # Print and send CODEWORD to Arduino
+    print(string_CODEWORD)
+    arduino.write((string_CODEWORD + '\n').encode())
+
+    # Draw a green circle in the center of the screen
+    cv.circle(frame, circle_center, 15, (0, 255, 0), thickness=2)
+
+    # Calculate and display frames per second (FPS)
+    frame_count += 1
+    elapsed_time = time.time() - start_time
+    if elapsed_time > 0:
+        fps = frame_count / elapsed_time
+
+    fps_text = f"FPS: {fps:.2f}"
+    cv.putText(frame, fps_text, (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    # Show the frame with detections
+    cv.imshow("Human Detection", frame)
+
+    # Exit the loop if 'q' is pressed
+    if cv.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release the webcam and close the Arduino connection
+cap.release()
+arduino.close()
+cv.destroyAllWindows()
+
+
+
+Serial Communication Setup
+The code establishes serial communication with an Arduino using the serial library. The Serial object connects to COM7 at a baud rate of 115200. A 2-second delay ensures the Arduino is ready before further operations. This connection allows the Python script to send commands (CODEWORD) to the Arduino, which controls the movement and firing mechanism of the sentry system.
+
+Image Processing and Object Detection
+The program initializes a 3x3 sharpening kernel to enhance the captured image from the webcam. It also defines a circle_diameter (60 pixels) and calculates the radius for a virtual detection area, which will later be used to track a person's position. The CODEWORD is initialized as a list of four zeros, which represents commands to be sent to the Arduino.
+
+A pre-trained MobileNet SSD model is loaded using the Caffe framework, along with its architecture (.prototxt) and weights (.caffemodel). The model can detect a range of object classes such as "person", "bicycle", "dog", etc., defined in the CLASSES array. 
+
+Frame Capture and Preprocessing
+The main loop continuously captures frames from the webcam and applies a sharpening filter to improve the image quality. Each frame is resized and preprocessed into a 4D blob format, which is then fed into the neural network model for object detection. The model returns a list of detections, representing all objects detected in the frame.
+
+Finding the Closest Person
+The code iterates over the detections, filtering out objects with a confidence level below 50% and skipping anything that isn't classified as a "person". For each detected person, the bounding box coordinates (startX, startY, endX, endY) are calculated, and the center of the bounding box (MiddleX, MiddleY) is determined. The distance from the center of the frame (representing the sentry's fixed position) to the person is computed. The closest person is tracked by finding the minimum distance.
+
+Generating and Sending Commands to Arduino
+Once the closest person is identified, the program draws a bounding box around them and a circle at their center to indicate the detection zone. The CODEWORD array is updated based on the person's position relative to the sentry's center. Specifically:
+
+The first digit indicates whether a person is detected.
+The second digit represents the horizontal alignment (left, right, or centered).
+The third digit represents the vertical alignment (up, down, or centered).
+The fourth digit signals whether the sentry is aligned and ready to fire.
+The CODEWORD is converted into a string and sent via serial communication to the Arduino, which interprets the instructions to control the sentry's movements and firing mechanism.
+
+FPS Display and Loop Control
+The frame rate (FPS) is calculated and displayed on the video feed to monitor performance. The loop continues processing frames until the user presses the 'q' key, at which point the webcam is released, the serial connection to the Arduino is closed, and all OpenCV windows are destroyed.
+
+
+
