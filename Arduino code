@@ -188,8 +188,25 @@ void loop() {
 }
 
 
+The system continuously monitors the analog value from pin A4, which is connected to a switch. When the switch is on, A4 is tied to 0V, and when off, A4 is tied to 5V. In this setup, when the switch is turned on, the variable val is set to 0, and the system follows the logic in the else statement at the beginning of the main loop. In this state, the sentry enters "loading mode." A mini 5V servo inside the sentry is set to 20 degrees, positioning the servo horn to block the flow of balls into the firing chamber. This allows for safe reloading, as the chamber remains blocked. Additionally, the RGB LED is set to blue, visually indicating that the system is in the loading phase. When the switch is turned off, val changes to 1023, allowing the main loop to continue.
 
-CODE EXPLAINATION:
+Since the Arduino processes data much faster than the serial communication transmits it, the system waits until data is received via serial before executing initial instructions. Once data is received from the serial buffer, it is stored in the data string. The contents of data are then parsed, and depending on the specific characters received, different actions are taken.
+
+If the first digit of data is '0', the sentry enters "sentry mode." Since the system already knows the current position of the sentry, it resets to the neutral 90-degree position and rotates between 160 and 20 degrees using for loops. During this mode, the RGB LED is set to green, indicating the sentry's active scanning state. Within the loop, the Arduino constantly checks if new data is available in the serial buffer. If new data is detected, the first digit of data is checked again, and if it's '1', the loop is broken.
+
+If the first digit is '1', another set of conditional statements is executed based on the last three digits of data. A flag is also set to 1 to indicate that tracking mode is active. If the second digit equals '1', no movement is required since the sentry is aligned with the target on the X-axis. If the second digit is '2', the sentry will move left, and if it's '3', the sentry will move right. Similarly, if the third digit equals '1', no action is taken for Y-axis alignment. However, if the third digit is '2', the sentry will move down, and if it's '3', it will move up.
+
+Only when both the X and Y axes are aligned does the fourth digit equal '1'. When this occurs, the relay pin is set to LOW, activating the mini servo at 90 degrees. This action triggers the relay, powering the fan, flywheels, and the geared DC motor responsible for pushing foam balls into the firing chamber. At this point, the previously blocked chamber is cleared, allowing balls to be fired. The RGB LED changes to red to indicate "firing mode."
+
+Once the target is no longer detected, the incoming data will have '0' as the first digit. However, because the flag was previously set to 1, the sentry will pause for 2 seconds before returning to sentry mode. This delay prevents erratic movement if the human detection algorithm temporarily loses sight of the target.
+
+
+
+
+
+
+
+
 
 
 
