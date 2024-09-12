@@ -1,0 +1,211 @@
+#include <Servo.h>  // Include the Servo library to control servo motors
+
+// Declare global variables and constants
+String data;  // Variable to store incoming serial data
+const int long_delay = 30;  // Delay for longer movements
+const int short_delay = 30;  // Delay for shorter movements
+
+// Define pin numbers for servo motors, relay, and RGB LED
+const int ServoPin3 = A1;
+const int relayPin = 3;
+const int ServoPin2 = 2;
+const int ServoPin = 9;
+const int blue = 7;
+const int green = 8;
+const int red = 10;
+const int analogPin = A4;  // Analog input pin for reading sensor value
+
+// Define variables for managing time, servo positions, and control flags
+int val = 0;
+int time;
+int prev_time;
+int set_time;
+int flag = 0;
+
+int initial_pos2;  // Initial position of Servo 2
+int initial_pos3;  // Initial position of Servo 3
+
+Servo myServo;  // Servo object for Servo 1
+Servo myServo2;  // Servo object for Servo 2
+Servo myServo3;  // Servo object for Servo 3
+
+void setup() {
+  Serial.begin(115200);  // Start serial communication at 115200 baud rate
+
+  // Set RGB LED and relay pins as outputs
+  pinMode(red, OUTPUT);
+  pinMode(green, OUTPUT);
+  pinMode(blue, OUTPUT);
+  pinMode(relayPin, OUTPUT);
+  
+  // Set relay to HIGH initially (off state)
+  digitalWrite(relayPin, HIGH);
+  
+  // Attach servo objects to their respective pins
+  myServo2.attach(ServoPin2);
+  myServo3.attach(ServoPin3);
+  myServo.attach(ServoPin);
+}
+
+void loop() {
+  val = analogRead(analogPin);  // Read the sensor value from the analog pin
+
+  if (val > 1000) {  // If sensor value is above threshold
+
+    val = analogRead(analogPin);  // Re-read sensor value (could be optimized)
+    
+    // Get the initial positions of Servos 2 and 3
+    initial_pos2 = myServo2.read();
+    initial_pos3 = myServo3.read();
+
+    // Check if there is serial data available
+    if (Serial.available() > 0) {
+      data = Serial.readStringUntil('\n');  // Read the serial input
+      
+      // If the first character of the serial data is '0'
+      if (data[0] == '0') {
+        
+        if (flag == 1) {  // If flag is set, execute timed relay control
+          prev_time = millis();  // Capture the current time
+          set_time = 0;
+
+          while (set_time < 2000) {  // Wait for 2000ms with relay HIGH
+            time = millis();
+            digitalWrite(relayPin, HIGH);
+            set_time = time - prev_time;
+
+            if (Serial.available() > 0) {
+              data = Serial.readStringUntil('\n');  // Break loop if serial input is '1'
+              if (data[0] == '1') {
+                break;
+              }
+            }
+          }
+          flag = 0;  // Reset flag
+        }
+
+        // Adjust the position of Servo 3 to 90 degrees
+        if (initial_pos3 > 90) {
+          initial_pos3--;
+          myServo3.write(initial_pos3);
+          delay(short_delay);
+        } else if (initial_pos3 < 90) {
+          initial_pos3++;
+          myServo3.write(initial_pos3);
+          delay(short_delay);
+        }
+
+        // Move Servo 2 between 90 and 160 degrees, then back to 20 degrees
+        if (initial_pos2 == 90) {
+          for (initial_pos2; initial_pos2 <= 160; initial_pos2++) {
+            myServo2.write(initial_pos2);
+            delay(short_delay);
+
+            if (Serial.available() > 0) {
+              data = Serial.readStringUntil('\n');
+              if (data[0] == '1') {
+                break;
+              }
+            }
+          }
+          for (initial_pos2; initial_pos2 >= 20; initial_pos2--) {
+            myServo2.write(initial_pos2);
+            delay(short_delay);
+
+            if (Serial.available() > 0) {
+              data = Serial.readStringUntil('\n');
+              if (data[0] == '1') {
+                break;
+              }
+            }
+          }
+        } else if (initial_pos2 > 90) {  // Adjust Servo 2 towards 90 degrees
+          initial_pos2--;
+          myServo2.write(initial_pos2);
+          delay(short_delay);
+        } else {
+          initial_pos2++;
+          myServo2.write(initial_pos2);
+          delay(short_delay);
+        }
+      }
+
+      // Check if third character of serial data is '1'
+      if (data[3] == '1') {
+        digitalWrite(relayPin, LOW);  // Turn relay off
+        myServo.write(90);  // Set Servo 1 to 90 degrees
+        digitalWrite(red, 255);  // Turn red LED on
+        digitalWrite(blue, 0);   // Turn blue LED off
+        digitalWrite(green, 0);  // Turn green LED off
+        flag = 1;  // Set flag
+      } else {  // If third character is not '1'
+        digitalWrite(relayPin, HIGH);  // Turn relay on
+        myServo.write(20);  // Set Servo 1 to 20 degrees
+        digitalWrite(red, 0);  // Turn red LED off
+        digitalWrite(blue, 0);  // Turn blue LED off
+        digitalWrite(green, 255);  // Turn green LED on
+        flag = 0;  // Reset flag
+      }
+
+      // Handle '1' as the first character in serial data
+      if (data[0] == '1') {
+        flag = 1;
+
+        // Update initial positions
+        initial_pos2 = myServo2.read();
+        initial_pos3 = myServo3.read();
+
+        // Control for Servo 2 based on second character in data
+        if (data[1] == '2' && initial_pos2 < 160) {
+          initial_pos2++;
+          myServo2.write(initial_pos2);
+          delay(long_delay);
+        } else if (data[1] == '3' && initial_pos2 > 20) {
+          initial_pos2--;
+          myServo2.write(initial_pos2);
+          delay(long_delay);
+        }
+
+        // Control for Servo 3 based on third character in data
+        if (data[2] == '2' && initial_pos3 > 80) {
+          initial_pos3--;
+          myServo3.write(initial_pos3);
+          delay(long_delay);
+        } else if (data[2] == '3' && initial_pos3 < 120) {
+          initial_pos3++;
+          myServo3.write(initial_pos3);
+          delay(long_delay);
+        }
+      }
+    }
+  } else {  // Default state when sensor value is below threshold
+    myServo.write(20);  // Set Servo 1 to default position
+    digitalWrite(red, 0);  // Turn off red LED
+    digitalWrite(blue, 255);  // Turn on blue LED
+    digitalWrite(green, 0);  // Turn off green LED
+    digitalWrite(relayPin, HIGH);  // Turn relay on (default state)
+  }
+}
+
+
+
+CODE EXPLAINATION:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
