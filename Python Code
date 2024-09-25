@@ -160,6 +160,51 @@ while True:
 
 cap.release()
 arduino.close()
+
+
+
+
+
+
+Key Components:
+Libraries and Initialization:
+
+cv2, numpy, serial, and time are imported for computer vision, numerical operations, Arduino communication, and time delays, respectively.
+An Arduino board is initialized via a serial connection (COM7 at 115200 baud rate).
+Some global variables are defined, such as the CODEWORD array, which is used to communicate with the Arduino, and constants like circle_radius, mid_length, and center positions for tracking.
+Loading the Pre-trained Model:
+
+The code loads the pre-trained MobileNetSSD model using Caffe framework (MobileNetSSD_deploy (2).prototxt and MobileNetSSD_deploy (2).caffemodel). This neural network can detect various object classes, including "person", "car", "dog", etc.
+CLASSES stores the list of object categories the model can detect.
+Webcam Capture:
+
+cap = cv.VideoCapture(0) initializes the default webcam for capturing video frames.
+Main Loop:
+
+The code runs an infinite loop to capture frames from the webcam.
+It starts by attempting to detect objects (specifically a person) when tracking is set to False. Once a person is detected, the system starts tracking them using OpenCV’s KCF tracker (Kernelized Correlation Filters).
+Object Detection:
+
+Each frame is converted into a "blob" using cv.dnn.blobFromImage(), which preprocesses the image (resizing, scaling, and mean subtraction).
+The blob is passed through the neural network (net.setInput() and net.forward()) to detect objects in the frame. If the confidence score for any detection is higher than 0.75, and the detected object is a "person", the system proceeds with tracking.
+Tracking:
+
+Once a person is detected, the code initializes the KCF tracker on the bounding box of the detected person.
+The system tracks the person's movement across frames using tracker.update(). If tracking is successful, it draws a rectangle around the detected person and computes the middle coordinates of the bounding box.
+Control Logic:
+
+Horizontal and Vertical Alignment: The system compares the detected person's position to the centre of the screen (circle at (352, 336)). It determines if the person is aligned horizontally and vertically within a certain radius (circle_radius). Based on the alignment, it updates the CODEWORD array:
+CODEWORD[0]: Indicates if a person is detected (1 if detected).
+CODEWORD[1]: Direction control for horizontal alignment (1 if aligned, 2 to move right, 3 to move left).
+CODEWORD[2]: Direction control for vertical alignment (1 if aligned, 2 to move down, 3 to move up).
+CODEWORD[3]: Indicates if the person is fully within the firing zone (1 if yes, 0 if no).
+This CODEWORD is converted to a string and sent to the Arduino over the serial connection for further action (e.g., controlling a motor or firing mechanism).
+Frames Per Second (FPS) Calculation:
+
+The code calculates and displays the current FPS of the video processing loop to give feedback on system performance.
+Exit Condition:
+
+If the user presses the 'q' key, the program will stop the loop, release the webcam, close the Arduino connection, and destroy all OpenCV windows.
 cv.destroyAllWindows()
 
 
