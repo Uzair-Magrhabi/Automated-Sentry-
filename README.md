@@ -11,4 +11,6 @@ The base houses the electronics, drawing 7V from the power supply to operate the
 
 The Arduino is mounted on a separate stripboard, where all grounds and input connections are organised. The system features two switches: one is a power switch that cuts the circuit’s power, and the other is an SPDT switch connected to the A4 pin on the Arduino, allowing the signal to either pull up to 5V or pull down to 0V depending on the switch position.
 
+The image processing is carried out on my laptop using OpenCV, a powerful computer vision library. This process involves capturing frames from a video stream (in this case, a webcam feed), detecting objects within those frames, and analyzing the position of a person relative to the centre of the image. The system implements a closed-loop visual control system, where real-time feedback from the camera is used to continuously adjust the camera's orientation based on the detected person's location.
+
 ****
