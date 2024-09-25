@@ -1,26 +1,13 @@
-# Automated-Sentry-
+Automated Sentry System
+Using Fusion 360, I designed the primary firing mechanism for the turret. The propulsion system leverages flywheels, adapted from a Nerf blaster, to launch foam projectiles. A 5V blower fan is employed to feed the projectiles into the flywheels, guided by a custom-designed pipe, also created in Fusion 360. To manage projectile flow and prevent blockages, a 5V mini servo is integrated into the firing component, controlling the entry of rounds into the chamber.
 
-Using Fusion 360 I designed the main firing compartment for the turret. I used flywheels from a nerf blaster to propell the foam bullets forward.
-I used a 5V blower fan to push the bullets into the flywheels where a custom designed pipe had to be created in fusion 360. A small 5V mini
-servo is also installed into into the firing component, this is to stop the flow on bullets from entering the firing chamber and to prevent
-further blocks.
+The projectiles are stored in a hopper positioned above the main chassis, which can be easily refilled via a screwable lid. A custom-built wheel, attached to a coupler and powered by a high-torque DC motor, pushes the projectiles into the firing chamber when the mini servo is retracted. The hopper enclosure is transparent, allowing visual monitoring of the remaining ammunition.
 
-The ball are stored inside a hopper above the main chasis where can be refilled using a screwable lid. A custom made wheel is attached to a
-coupler and then atttached to a high tourque dc motor. When the motor turns it will push balls into the firing chamber if the mini servo 
-is retrached. The enclosure is made of a plastic so you can see the amount of bullets remaining in the hooper.
+Mounted on the main chassis is a camera holder, crucial for running object detection algorithms. The holder also contains an RGB LED, soldered to a PCB with the appropriate resistors, which visually indicates the system's operational states (shooting, searching, loading).
 
-installed on the main chaisis the the camera holder, this holds the camera which is necessary for object detection algorithms, also inside
-the camera holder is a rgb led that has been soldered to a pcboard with appropriate resistors, This is the show the differnet stages of the
-robot (shoot, searching, loading)
+The chassis is supported by two legs: one leg incorporates a 25kg servo motor for vertical rotation, while the other includes a bearing to ensure smooth motion when adjusting the turret's elevation. These legs are fixed to a custom-designed base plate, which allows for horizontal rotation via a servo. Steel ball bearings are integrated beneath the plate to facilitate smooth, free movement.
 
-the main chasis is held up by 2 legs, one leg has a 25kg servo motor attached to the main chasis to rotate up and down and the other leg has 
-a bearing to ensure smooth movement when moving the head up and down.
+The base houses the electronics, drawing 7V from the power supply to operate the two high-torque servo motors and the flywheel motors. A flyback diode is installed across the flywheels to prevent back-voltage, while two bypass capacitors are used to minimize electrical noise, ensuring stable operation. A diode reduces the voltage to 6.3V for powering the mini servo. Both the flywheels and high-torque motor are controlled through a relay, which can be triggered by the Arduino.
 
-The two legs are screwed into a custom plate, so it can swivel left and right on a servo. steel ball bearings are popped in the underside of the plate
-so that it can move horizontally freely.
+The Arduino is mounted on a separate stripboard, where all grounds and input connections are organized. The system features two switches: one is a power switch that cuts the circuit’s power, and the other is an SPDT switch connected to the A4 pin on the Arduino, allowing the signal to either pull up to 5V or pull down to 0V depending on the switch position.
 
-Inside the base house the electronics. 7V is obtained from the power supply which is used to power the 2 high tourque servo motors and the flywheel motors.
-a flyback diode is placed across the flywheels to prevent flyback voltage. Two bypass capacitors are used to reduce noise ensuring smooth operation.
-Using a diode we can decrease the voltage to 6.3V so we can power the mini servo. The flywheels and and high tourque motor is connected via a relay 
-so it can be triggered by the arduino. The arduino can be fitted into a seperate striboard where ground are connected and all the inputs all also 
-connected. Two switches are also installed, one is a power switch can that break power to the circuit and the other acts as a pull 
