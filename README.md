@@ -16,5 +16,11 @@ robot (shoot, searching, loading)
 the main chasis is held up by 2 legs, one leg has a 25kg servo motor attached to the main chasis to rotate up and down and the other leg has 
 a bearing to ensure smooth movement when moving the head up and down.
 
-The two legs are screwed into a custom plate, so it can swivel left and right on a servo. metal balls are popped in the underside of the plate
-so that it can move horizontally freely
+The two legs are screwed into a custom plate, so it can swivel left and right on a servo. steel ball bearings are popped in the underside of the plate
+so that it can move horizontally freely.
+
+Inside the base house the electronics. 7V is obtained from the power supply which is used to power the 2 high tourque servo motors and the flywheel motors.
+a flyback diode is placed across the flywheels to prevent flyback voltage. Two bypass capacitors are used to reduce noise ensuring smooth operation.
+Using a diode we can decrease the voltage to 6.3V so we can power the mini servo. The flywheels and and high tourque motor is connected via a relay 
+so it can be triggered by the arduino. The arduino can be fitted into a seperate striboard where ground are connected and all the inputs all also 
+connected. Two switches are also installed, one is a power switch can that break power to the circuit and the other acts as a pull 
