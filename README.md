@@ -1,7 +1,7 @@
 Automated Sentry System
 Using Fusion 360, I designed the primary firing mechanism for the turret. The propulsion system utilises flywheels, adapted from a Nerf blaster, to launch foam projectiles. A 5V blower fan is employed to feed the projectiles into the flywheels, guided by a custom-designed pipe, also created in Fusion 360. To manage projectile flow and prevent blockages, a 5V mini servo is integrated into the firing component, controlling the entry of rounds into the chamber.
 
-The projectiles are stored in a hopper positioned above the main chassis, which can be easily refilled via a screwable lid. A custom-built wheel, attached to a coupler and powered by a high-torque DC motor, pushes the projectiles into the firing chamber when the mini servo is retracted. The hopper enclosure is transparent, allowing visual monitoring of the remaining ammunition.
+The projectiles are stored in a hopper positioned above the main chassis, which can be easily refilled via a screwable lid. A custom-built propellor which acts as an agitator, attached to a coupler and powered by a high-torque DC motor, pushes the projectiles into the firing chamber when the mini servo is retracted. The hopper enclosure is transparent, allowing visual monitoring of the remaining ammunition.
 
 Mounted on the main chassis is a camera holder, crucial for running object detection algorithms. The holder also contains an RGB LED, soldered to a PCB with the appropriate resistors, which visually indicates the system's operational states (shooting, searching, loading).
 
